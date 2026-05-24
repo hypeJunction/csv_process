@@ -12,7 +12,7 @@ cd /var/www/html
 
 # Check if Elgg is already installed
 if [ ! -f /var/www/html/.elgg-installed ]; then
-    echo "Installing Elgg 5.x..."
+    echo "Installing Elgg 6.x..."
 
     # Create settings.php
     mkdir -p elgg-config
@@ -49,7 +49,7 @@ SETTINGS_VALUES
             'dbhost' => '${ELGG_DB_HOST:-db}',
             'dbport' => '3306',
             'dbprefix' => 'elgg_',
-            'sitename' => 'Elgg 5.x Migration Test',
+            'sitename' => 'Elgg 6.x Migration Test',
             'siteemail' => '${ELGG_ADMIN_EMAIL:-admin@example.com}',
             'wwwroot' => '${ELGG_SITE_URL:-http://localhost/}',
             'dataroot' => '${ELGG_DATA_ROOT:-/var/www/data/}',
@@ -61,7 +61,7 @@ SETTINGS_VALUES
 
         \$installer = new \ElggInstaller();
         \$installer->batchInstall(\$params);
-        echo 'Elgg 5.x installed successfully.' . PHP_EOL;
+        echo 'Elgg 6.x installed successfully.' . PHP_EOL;
     " 2>&1 || echo "Install completed (check for errors above)."
 
     # Activate plugins in priority order
@@ -147,7 +147,7 @@ SETTINGS_VALUES
     fi
 
     touch /var/www/html/.elgg-installed
-    echo "Elgg 5.x setup complete."
+    echo "Elgg 6.x setup complete."
 fi
 
 # Start Apache
