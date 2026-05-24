@@ -3,11 +3,12 @@ define(function (require) {
 	var elgg = require('elgg');
 	var $ = require('jquery');
 	var spinner = require('elgg/spinner');
+	var i18n = require('elgg/i18n');
 	require('jquery.form');
 
 	$('form.elgg-form-csv-process').submit(function (e) {
 		e.preventDefault();
-		if (confirm(elgg.echo('csv_process:form:confirm'))) {
+		if (confirm(i18n.echo('csv_process:form:confirm'))) {
 			var $form = $(this);
 			$form.ajaxSubmit({
 				dataType: 'json',

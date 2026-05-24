@@ -1,7 +1,9 @@
 define(function (require) {
 
-	var elgg = require('elgg');
 	var $ = require('jquery');
+	var Ajax = require('elgg/Ajax');
+
+	var ajax = new Ajax();
 
 	var Progress = function (time) {
 		this.time = time;
@@ -19,14 +21,13 @@ define(function (require) {
 		},
 		getLine: function () {
 			var self = this;
-			elgg.get('ajax/view/csv_process/ajax/progress', {
+			ajax.view('csv_process/ajax/progress', {
 				data: {
 					time: self.time
-				},
-				success: function (line) {
-					self.addLine(line);
-					self.init();
 				}
+			}).done(function (line) {
+				self.addLine(line);
+				self.init();
 			});
 		},
 		init: function () {
@@ -34,6 +35,7 @@ define(function (require) {
 				window.clearTimeout(this.timeout);
 			}
 
+			// Function.prototype.bind — NOT jQuery .bind() (which was removed in jQuery 3.x).
 			this.timeout = window.setTimeout(this.getLine.bind(this), 2000);
 		}
 	};
