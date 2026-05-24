@@ -1,21 +1,20 @@
 <?php
 
-namespace csv_process;
+use CsvProcess\CsvProcessor;
 
 set_time_limit(0);
 
-$callback = get_input('callback', false);
-$options = elgg_trigger_plugin_hook('csv_process', 'callbacks', [], []);
-$location = get_input('location');
-$delimiter = get_input('delimiter', ',');
-$enclosure = get_input('enclosure', '"');
-$escape = get_input('escape', '\\');
+$callback = (string) get_input('callback', '');
+$options = (array) elgg_trigger_plugin_hook('csv_process', 'callbacks', [], []);
+$location = (string) get_input('location', '');
+$delimiter = (string) get_input('delimiter', ',');
+$enclosure = (string) get_input('enclosure', '"');
+$escape = (string) get_input('escape', '\\');
 
 if (!$callback || !in_array($callback, array_keys($options))) {
 	register_error(elgg_echo('csv_process:error:invalid:callback'));
 	forward(REFERER);
 }
-
 
 if (!is_callable($callback)) {
 	register_error(elgg_echo('csv_process:error:uncallable:callback'));
@@ -23,16 +22,16 @@ if (!is_callable($callback)) {
 }
 
 if (empty($delimiter) || empty($escape) || empty($enclosure)) {
-	register_error('csv_process:error:empty:args');
+	register_error(elgg_echo('csv_process:error:empty:args'));
 	forward(REFERER);
 }
 
-if ((!$_FILES['csv']['tmp_name'] || $_FILES['csv']['error']) && !$location) {
+if ((empty($_FILES['csv']['tmp_name']) || $_FILES['csv']['error']) && !$location) {
 	register_error(elgg_echo('csv_process:error:upload'));
 	forward(REFERER);
 }
 
-elgg_register_event_handler('shutdown', 'system', __NAMESPACE__ . '\\process_csv');
+elgg_register_event_handler('shutdown', 'system', [CsvProcessor::class, 'processCsv']);
 
 $time = time();
 $csv_location = $location ? $location : $_FILES['csv']['tmp_name'];
