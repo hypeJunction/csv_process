@@ -1,5 +1,65 @@
 # Changelog
 
+## 5.0.0 — 2026-05-24
+
+Migrated from Elgg 4.x to 5.x (`elgg-migrate-xk2ch`).
+
+### Removed
+
+- `forward()` / `register_error()` — both functions removed in Elgg 5.0.
+  Actions now `return elgg_redirect_response()` / `elgg_error_response()` /
+  `elgg_ok_response()` per the 5.x action contract.
+- `add_translation()` — removed in 5.0. `languages/en.php` rewritten to
+  simply `return` the translations array.
+- `'hooks'` key in `elgg-plugin.php` — merged into `'events'` (5.x unifies
+  the plugin-hook and event APIs).
+- `\Elgg\Hook` type hint — replaced with `\Elgg\Event` in
+  `CsvProcess\DemoHandler::register()`.
+
+### Changed
+
+- `composer.json`: `elgg/elgg ^4.0` → `~5.1.0`, `php >=7.4` → `>=8.1`,
+  added `ext-intl *` (required by Elgg 5.x — auto-applied by AST rule
+  `update-manifest-version-5x`).
+- `elgg-plugin.php`: top-level `'hooks'` key renamed to `'events'`. Handler
+  string literal (`'CsvProcess\\DemoHandler::register'`) unchanged.
+- `classes/CsvProcess/DemoHandler.php`: `use Elgg\Hook` → `use Elgg\Event`;
+  `register(Hook $hook)` → `register(Event $event)`; `$hook->getValue()` →
+  `$event->getValue()`. Docblock clarifies the per-row callback contract
+  (positional `array $params`, not an Elgg event handler).
+- `actions/csv_process.php`: `elgg_trigger_plugin_hook()` →
+  `elgg_trigger_event_results()`; four `register_error() + forward(REFERRER)`
+  blocks collapsed to `return elgg_error_response(...)`; final
+  `forward('admin/...')` → `return elgg_redirect_response('admin/...')`;
+  XHR branch `echo json_encode(...)` → `return elgg_ok_response([...])`.
+- `actions/log_download.php`: `register_error() + forward(REFERRER)` →
+  `return elgg_error_response(...)`.
+- `views/default/forms/csv_process.php`: `elgg_trigger_plugin_hook()` →
+  `elgg_trigger_event_results()`.
+- `languages/en.php`: `add_translation('en', $arr)` → `return $arr` (5.x
+  language file convention).
+- `REFERER` constant references renamed to `REFERRER` (AST rule
+  `removed-constants-5x`) — although the actions that used them were then
+  refactored away from `forward()` entirely.
+- `docker/`: replaced 4.x infra with elgg5 template (PHP 8.2, Elgg 5.x
+  install script).
+
+### Gates passed
+
+- Elgg 5.x Docker stack activation: PASS
+- Homepage renders (8888 bytes): PASS
+- Login page renders (8975 bytes): PASS
+- No PHP Fatal/Error in Apache log: PASS
+- PHP syntax check: PASS
+- PHP_CodeSniffer (Elgg standard): PASS
+- PostMigrationVerifier (5.x boundary): PASS
+- SecuritySweep: PASS
+
+### Known carry-forward to 5.x → 6.x
+
+- AMD modules in `views/` — convert to ES modules at 5.x → 6.x
+  (`elgg-migrate-jmw26`).
+
 ## 4.0.0 — 2026-05-24
 
 Migrated from Elgg 3.x to 4.x (`elgg-migrate-iv5j8`).

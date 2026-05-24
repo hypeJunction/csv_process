@@ -1,34 +1,34 @@
-# csv_process — Architecture (Elgg 4.x)
+# csv_process — Architecture (Elgg 5.x)
 
 ## Summary
 
 **Name**: csv_process
-**Version**: 4.0.0 — migrated to Elgg 4.x on 2026-05-24 (from 3.x)
+**Version**: 5.0.0 — migrated to Elgg 5.x on 2026-05-24 (from 4.x)
 **Purpose**: Admin-only interface for uploading and processing CSV files with custom per-row callbacks contributed by other plugins.
 
 The plugin exposes a single admin utility page that lets administrators select a
 registered CSV processor, supply a CSV file (uploaded or referenced by path),
 and stream live progress while each row is dispatched to the chosen callback.
-Other plugins register processors via the `csv_process,callbacks` plugin hook,
+Other plugins register processors via the `csv_process,callbacks` event,
 returning a `callable-string => label-string` map.
 
 ## Directory Structure
 
 ```
 csv_process/
-├── elgg-plugin.php                 # 4.x declarative config (plugin/bootstrap/actions/hooks/menus)
-├── composer.json                   # hypejunction/csv_process @ 4.0.0; psr-4 autoload of CsvProcess\
+├── elgg-plugin.php                 # 5.x declarative config (plugin/bootstrap/actions/events/menus)
+├── composer.json                   # hypejunction/csv_process @ 5.0.0; psr-4 autoload of CsvProcess\
 ├── classes/
 │   └── CsvProcess/
 │       ├── Bootstrap.php           # extends \Elgg\DefaultPluginBootstrap; init() extends admin.css
-│       ├── CsvProcessor.php        # shutdown-time CSV streamer (was csv_process\process_csv)
-│       └── DemoHandler.php         # demo csv_process,callbacks registration + per-row handler
-├── docker/                         # per-plugin elgg4 docker stack (Iron Law 12)
+│       ├── CsvProcessor.php        # shutdown-time CSV streamer
+│       └── DemoHandler.php         # demo csv_process,callbacks registration + per-row handler (uses \Elgg\Event)
+├── docker/                         # per-plugin elgg5 docker stack (Iron Law 12)
 ├── actions/
-│   ├── csv_process.php             # admin: kicks off CSV processing (registers shutdown handler)
+│   ├── csv_process.php             # admin: kicks off CSV processing (returns elgg_redirect_response)
 │   └── log_download.php            # admin: stream-download the per-run log
 ├── languages/
-│   └── en.php                      # add_translation() based string registration
+│   └── en.php                      # returns array of translations (5.x style — add_translation() removed)
 ├── views/default/
 │   ├── csv_process.css             # admin CSS extension
 │   ├── admin/administer_utilities/
@@ -52,9 +52,11 @@ csv_process/
   lives in `CsvProcess\Bootstrap::init()`.
 - **Iron Law 6 (dir = composer name)**: satisfied — directory `csv_process`
   matches `hypejunction/csv_process` (lowercase).
-- **Iron Law 7 (4.x APIs only)**: satisfied — handlers use `\Elgg\Hook`, not
-  `\Elgg\Event`; `elgg_register_plugin_hook_handler` callsite in the action
-  validates user input against the same hook map.
+- **Iron Law 7 (5.x APIs only)**: satisfied — handlers use `\Elgg\Event`, not
+  `\Elgg\Hook`; trigger calls use `elgg_trigger_event_results()`, not
+  `elgg_trigger_plugin_hook()`; actions use `elgg_redirect_response()` /
+  `elgg_error_response()`, not the removed `forward()` / `register_error()`;
+  language files return arrays, not `add_translation()`.
 - **Cross-plugin learning**: class refs in `elgg-plugin.php` are written as
   string literals (`'CsvProcess\\Bootstrap'`, `'CsvProcess\\DemoHandler::register'`)
   rather than `::class`, since the plugin autoloader is not necessarily wired
@@ -78,39 +80,35 @@ None registered. The admin utility is reached via the admin menu item
 
 | Action                       | File                          | Purpose                                                   |
 |------------------------------|-------------------------------|-----------------------------------------------------------|
-| `csv_process`                | `actions/csv_process.php`     | Validate input, persist config, register the shutdown CSV processor, redirect with progress UI. |
+| `csv_process`                | `actions/csv_process.php`     | Validate input, persist config, register the shutdown CSV processor, redirect with progress UI. Returns `elgg_redirect_response()` or `elgg_error_response()`. |
 | `csv_process/log_download`   | `actions/log_download.php`    | Stream the on-disk log file for a given run timestamp.    |
 
 Both actions are declared with `access => admin` in `elgg-plugin.php` (`actions`
-key), replacing the 3.x `elgg_register_action()` call in `start.php`.
-
-## Hooks
-
-| Hook            | Type        | Handler                                  | Purpose                                                                                                  |
-|-----------------|-------------|------------------------------------------|----------------------------------------------------------------------------------------------------------|
-| `csv_process`   | `callbacks` | `CsvProcess\DemoHandler::register`       | Plugin's own demo processor. Other plugins (e.g. `bodyology_csv`) register additional processors here.   |
-
-The registrant signature uses `\Elgg\Hook` (4.x single-arg). The
-**downstream contract** (what `$csv_callback($params)` receives in
-`CsvProcessor::processCsv`) is preserved as the legacy 4-key array
-`['data', 'line', 'last', 'time']` because consumer plugins such as
-`bodyology_csv` register callable maps using the legacy 4-arg signature.
-Unifying that contract to `\Elgg\Hook` is deferred to the 4.x → 5.x boundary
-(`elgg-migrate-xk2ch`).
+key).
 
 ## Events
 
-| Event      | Type     | Handler                                          | Purpose                                                              |
-|------------|----------|--------------------------------------------------|----------------------------------------------------------------------|
-| `shutdown` | `system` | `CsvProcess\CsvProcessor::processCsv`            | Registered dynamically inside `actions/csv_process.php` so processing happens after the HTTP response is flushed. |
+| Event           | Type        | Handler                                  | Purpose                                                                                                  |
+|-----------------|-------------|------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| `csv_process`   | `callbacks` | `CsvProcess\DemoHandler::register`       | Plugin's own demo processor. Other plugins (e.g. `bodyology_csv`) register additional processors here.   |
+| `shutdown`      | `system`    | `CsvProcess\CsvProcessor::processCsv`    | Registered dynamically inside `actions/csv_process.php` so processing happens after the HTTP response is flushed. |
+
+The registrant signature uses `\Elgg\Event` (5.x single-arg). The **downstream
+contract** (what `$csv_callback($params)` receives in `CsvProcessor::processCsv`)
+is intentionally the 4-key positional array `['data', 'line', 'last', 'time']`
+— it is NOT an Elgg event signature. Per-row callbacks are invoked directly by
+`csv_process` (not as Elgg event handlers), so they keep their plain `array $params`
+form independent of the hook/event API. The consumer plugin `bodyology_csv`
+already registers its event handler as a 1-arg `\Elgg\Event` handler (matches
+5.x), and its per-row callbacks (`bodyology_csv_import_users` etc.) keep their
+positional `array $params` signature — both forms are mutually compatible.
 
 No `init,system` registration — the only init-time work (CSS extension and
 admin menu) lives in `Bootstrap::init()` and the declarative `menus` key.
 
 ## Menus
 
-Declared in `elgg-plugin.php` (replaces the 3.x `elgg_register_admin_menu_item`
-call which was removed without deprecation in 4.x):
+Declared in `elgg-plugin.php`:
 
 | Menu   | Item          | Parent                | Target URL                                  |
 |--------|---------------|-----------------------|---------------------------------------------|
@@ -118,44 +116,23 @@ call which was removed without deprecation in 4.x):
 
 ## Views
 
-Unchanged in structure from 3.x. JS modernised:
-
-- `views/default/forms/csv_process.js` — AMD; uses `elgg/i18n` (was
-  `elgg.echo`) and `elgg/spinner`. Still uses `jquery.form` (`ajaxSubmit`).
-- `views/default/csv_process/ajax/progress.js` — AMD; rewritten to use
-  `elgg/Ajax` (was `elgg.get`). `Function.prototype.bind` calls preserved
-  (the AST rule's `.bind()` → `.on()` rewrite was a false positive on
-  non-jQuery bind and was reverted).
-
-All AMD modules will migrate to ES modules at the 5.x → 6.x boundary
-(`elgg-migrate-jmw26`).
+Unchanged in structure from 4.x. JS is still AMD (`elgg/i18n`, `elgg/Ajax`,
+`elgg/spinner`). All AMD modules will migrate to ES modules at the 5.x → 6.x
+boundary (`elgg-migrate-jmw26`).
 
 ## Languages
 
-- `languages/en.php` — `add_translation('en', [...])` covering form labels,
-  error/help strings, and the demo handler label.
+- `languages/en.php` — returns an array of translations (5.x style;
+  `add_translation()` was removed in 5.0).
 
 ## Dependencies
 
 `composer.json` requires:
 
-- `php >=7.4`
-- `elgg/elgg ^4.0`
+- `php >=8.1`
+- `elgg/elgg ~5.1.0`
+- `ext-intl *`
 - `composer/installers ^2.0`
-
-**`vroom` plugin dependency dropped at this version step.** The 2.x/3.x
-manifest required `vroom` (jumbojett/vroom) so that the HTTP response would
-flush before the `shutdown,system` handler ran the long CSV processing.
-Three reasons to drop it:
-
-1. `vroom` is not published on Packagist — declaring it as a composer
-   require fails to resolve unless the consumer site vendors it locally.
-2. The 4.x action issues `forward('admin/.../csv_process?time=...')`, so the
-   browser disconnects from the response stream before the shutdown handler
-   runs; the user-visible delay is already eliminated by the redirect.
-3. Operators who still want the original `vroom` behaviour can install it
-   alongside `csv_process` — there is no hard runtime coupling, only a UX
-   nicety.
 
 ## Seeding
 
@@ -165,54 +142,56 @@ keys and a per-run log file under `dataroot/csv_process_log/`, neither of which
 benefits from fixture seeding. Acceptable per the skill's "no entity surface"
 exemption.
 
-## Migration Notes — 3.x → 4.x
+## Migration Notes — 4.x → 5.x
 
 Changes applied in this step:
 
-- **`start.php` removed.** The 3.x closure pattern (returning `function () { … }`)
-  was replaced by a `\CsvProcess\Bootstrap` class extending
-  `\Elgg\DefaultPluginBootstrap`. Action/hook/menu registrations moved to the
-  declarative `elgg-plugin.php` config (`actions`, `hooks`, `menus` keys).
-- **`manifest.xml` removed.** 4.x reads all plugin metadata from
-  `composer.json`. The `vroom` plugin dependency was dropped (see Dependencies
-  above for rationale).
-- **`composer.json`**: bumped `elgg/elgg` from `^3.0` → `^4.0`, `php` from
-  `>=7.2` → `>=7.4`, `composer/installers` to `^2.0` only. Added `psr-4`
-  autoload of `CsvProcess\` to `classes/CsvProcess/`. Added `extra.elgg-plugin.id`.
-- **Class extraction**: the procedural functions in 3.x `start.php` became:
-  - `csv_process\process_csv` → `CsvProcess\CsvProcessor::processCsv`
-  - `csv_process\register_demo_handler` → `CsvProcess\DemoHandler::register`
-    (now takes `\Elgg\Hook` and uses `$hook->getValue()` / array merge instead
-    of the 3.x 4-arg signature)
-  - `csv_process\demo_handler` → `CsvProcess\DemoHandler::handle`
-  - `csv_process\log` → `CsvProcess\CsvProcessor::writeLog` (residual
-    rename from the 3.x notes — `log` was a namespaced helper that risked
-    future PHP/Elgg reserved-word friction)
-- **`elgg_register_admin_menu_item()` removed in 4.x.** Replaced by the
-  declarative `menus.page.csv_process` entry in `elgg-plugin.php`.
-- **JS modernised:**
-  - `forms/csv_process.js`: `elgg.echo()` → `i18n.echo()` (AMD rule
-    `013b-amd-removed-apis`).
-  - `csv_process/ajax/progress.js`: `elgg.get()` → `Ajax.view()` (AMD rule
-    `009-js-ajax-helpers`, applied manually).
-- **`callback` validation tightened** in `actions/csv_process.php`: input is
-  cast to string before the `in_array` / `is_callable` checks so a malformed
-  posted value can't bypass the dropdown allowlist.
+- **Hook → event unification (Iron Law 7 boundary work).** This was deferred
+  from the 3→4 step because the consumer plugin `bodyology_csv` was holding
+  the legacy 4-arg signature. At the 5.x boundary the plugin-hook API is
+  unified into events:
+  - `elgg-plugin.php`: top-level `'hooks'` key renamed to `'events'`.
+  - `classes/CsvProcess/DemoHandler.php`: `use Elgg\Hook` →
+    `use Elgg\Event`; `public static function register(Hook $hook)` →
+    `public static function register(Event $event)`; `$hook->getValue()` →
+    `$event->getValue()`.
+  - `actions/csv_process.php` and `views/default/forms/csv_process.php`:
+    `elgg_trigger_plugin_hook('csv_process', 'callbacks', ...)` →
+    `elgg_trigger_event_results('csv_process', 'callbacks', ...)`.
+  - The per-row callback contract — what `$csv_callback($params)` receives —
+    is unchanged; it's a plain positional `array $params` invocation, not an
+    Elgg event handler. The consumer plugin `bodyology_csv` registered its
+    `csv_process,callbacks` handler as `Elgg\Event` already (as of its 4.x
+    migration), so this step requires no consumer-side change.
+- **`forward()` / `register_error()` removed in 5.x.** Both actions
+  (`actions/csv_process.php`, `actions/log_download.php`) now return the
+  appropriate 5.x response object: `elgg_redirect_response($url)` for success
+  redirects, `elgg_error_response($msg)` for validation errors (which also
+  registers the error message), and `elgg_ok_response([...])` for the XHR
+  branch (replaces the manual `echo json_encode(...)`).
+- **`REFERER` constant removed in 5.0.** Renamed to `REFERRER` (auto-rule
+  `removed-constants-5x`). The remaining `forward(REFERRER)` calls were then
+  replaced with `elgg_error_response()` per above.
+- **`add_translation()` removed in 5.0.** `languages/en.php` rewritten to
+  simply `return` the translations array.
+- **`composer.json`**: bumped `elgg/elgg` from `^4.0` → `~5.1.0`, `php` from
+  `>=7.4` → `>=8.1`, added `ext-intl *` (required by Elgg 5.x).
+- **Docker infra**: replaced `docker/` with the elgg5 template (PHP 8.2,
+  Elgg 5.x install script).
 
 ### Known issues / carry-forward
 
-- `forward()` is used in actions; the migration rule flags this as
-  "removed in 4.0" but `forward()` actually lives in `engine/lib/deprecated-4.0.php`
-  and still works. Refactor to `elgg_redirect_response()` /
-  `elgg_error_response()` at the 4.x → 5.x boundary (`xk2ch`).
-- `bodyology_csv` consumer plugin still registers its hook with the legacy
-  4-arg signature on purpose; csv_process invokes the per-row callback
-  directly so the consumer contract is the array `$params`, not `\Elgg\Hook`.
-  Unify both at 4.x → 5.x.
-- AMD modules will migrate to ES modules at 5.x → 6.x.
+- AMD modules in `views/` — convert to ES modules at 5.x → 6.x
+  (`elgg-migrate-jmw26`). `elgg_define_js()` / `elgg_require_js()` and AMD
+  loaders are scheduled for removal in 6.x.
+- No PHPUnit suite shipped (carried forward from 3.x/4.x). A `tests/`
+  placeholder exists; a `Seed`-less plugin without entity surface still
+  benefits from action-level tests — open for a future iteration.
 
 ## Source
 
 - Upstream (read-only): `arckinteractive/csv_process` — last commit 2015-12-29, abandoned.
 - hypeJunction fork: `https://github.com/hypeJunction/csv_process` — base for the migration chain.
-- Bodyology consumer: `bodyology_csv` registers `csv_process,callbacks` and uses the legacy 4-arg hook signature on purpose. Compatibility with that consumer is a hard constraint for every step on the way to 7.x.
+- Bodyology consumer: `bodyology_csv` registers `csv_process,callbacks` as an
+  `\Elgg\Event` handler; per-row callbacks use the positional `array $params`
+  shape that csv_process invokes directly.

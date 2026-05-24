@@ -1,7 +1,7 @@
 CSV Process for Elgg
 ====================
 
-![Elgg 4.x](https://img.shields.io/badge/Elgg-4.x-orange.svg?style=flat-square)
+![Elgg 5.x](https://img.shields.io/badge/Elgg-5.x-orange.svg?style=flat-square)
 
 Admin tool that uploads a CSV file and dispatches each row to a custom
 processing callback contributed by another plugin. Useful for one-off
@@ -13,7 +13,7 @@ The form for handling CSV processing is found at
 ## Installation
 
 ```bash
-composer require hypejunction/csv_process:^4.0
+composer require hypejunction/csv_process:~5.1.0
 ```
 
 Then enable through Admin → Plugins.
@@ -22,23 +22,25 @@ Then enable through Admin → Plugins.
 
 | Plugin version | Elgg version |
 |---|---|
-| current | 4.x |
+| current | 5.x |
+| 4.x     | 4.x |
 | 3.x     | 3.x |
 | 2.x     | 2.x |
 
 ## Integration
 
 Other plugins register CSV processing callbacks by listening on the
-`csv_process,callbacks` plugin hook and returning a `callable-string =>
-label-string` map. The hook signature is the legacy 4-arg form for
-compatibility with older registrants; this will be unified at the
-4.x → 5.x boundary.
+`csv_process,callbacks` event and returning a `callable-string =>
+label-string` map. Per-row callbacks (the values in that map) are
+invoked positionally with a single `array $params` argument — they
+are NOT Elgg event handlers, so their signature is independent of
+the Elgg hook/event API.
 
-Register your hook handler (in your plugin's `elgg-plugin.php`):
+Register your event handler (in your plugin's `elgg-plugin.php`):
 
 ```php
 return [
-    'hooks' => [
+    'events' => [
         'csv_process' => [
             'callbacks' => [
                 'My\\Plugin\\Csv::register' => [],
@@ -48,16 +50,16 @@ return [
 ];
 ```
 
-Implement the hook + per-row handler:
+Implement the event + per-row handler:
 
 ```php
 namespace My\Plugin;
 
-use Elgg\Hook;
+use Elgg\Event;
 
 class Csv {
-    public static function register(Hook $hook) {
-        $return = (array) $hook->getValue();
+    public static function register(Event $event) {
+        $return = (array) $event->getValue();
         $return[self::class . '::handle'] = elgg_echo('myplugin:handler:label');
         return $return;
     }
@@ -85,7 +87,7 @@ that logs the first cell of each row — useful as a smoke test.
 
 ## Architecture
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the current 4.x layout.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the current 5.x layout.
 
 ## License
 
