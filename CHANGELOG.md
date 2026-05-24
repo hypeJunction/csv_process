@@ -1,5 +1,50 @@
 # Changelog
 
+## 7.0.0 — 2026-05-24
+
+Migrated from Elgg 6.x to 7.x (`elgg-migrate-j74tg`). Final step in the
+2.x → 7.x chain (umbrella `elgg-migrate-l0g46`).
+
+### Changed
+
+- `composer.json`: `elgg/elgg ~6.1.0` → `~7.0.0`, `php >=8.2` → `>=8.3`.
+  Added `minimum-stability: dev`, `prefer-stable: true`, and the
+  `asset-packagist.org` composer repository — required by the Elgg 7.x
+  installer (Iron Law 11 / 7.x boundary).
+- `docker/`: replaced with the elgg7 template (PHP 8.3 base image,
+  Elgg 7.x installer, PHPUnit ^12.5).
+
+### Carried forward unchanged
+
+- All 7.x AST rules were no-ops for this plugin — no
+  `elgg_reset_system_cache()` calls, no Redis/Memcached config, no
+  Laminas\Mail, no Font Awesome icons, no notification handler
+  classes, no `ajax_response` / `forward` event handlers, no removed
+  CSS classes, no group `subpage` URLs, no `flush_cache` /
+  `collection:user:user` references, no `recipients` form field,
+  no external-pages usage, no password validators, no `\ElggObject`
+  direct instantiations, no CKEditor customisation, no webservices /
+  REST API hooks, no `elements/grid` CSS extensions.
+- Event-handler shape in `elgg-plugin.php` is already the keyed
+  `'FQCN::method' => spec` form (introduced earlier in the chain),
+  so the 7.x rewrite of the legacy `[['handler' => [Class, 'method']]]`
+  shape was not triggered.
+- `elgg_register_external_file()` is not called by this plugin, so the
+  "return-void in 7.x" change has no impact.
+- No PHPUnit suite shipped (carried through every prior major); the
+  `tests/playwright` and `tests/vitest` scaffolds remain.
+- The plugin still owns no entity types/subtypes/relationships, so a
+  `Seed` subclass is intentionally omitted (skill's "no entity surface"
+  exemption).
+
+### Notes
+
+- All `elgg-migrate-verify` gates pass on the elgg7 docker stack:
+  PHP syntax clean (excl. vendor/tests), homepage renders (14517 bytes),
+  login renders (14609 bytes), no PHP Fatal/Error in Apache log,
+  PHP_CodeSniffer (Elgg standard) clean, activation OK.
+- Verified via `verify-fleet --version=elgg7 --only=csv_process`.
+
 ## 6.0.0 — 2026-05-24
 
 Migrated from Elgg 5.x to 6.x (`elgg-migrate-jmw26`).
