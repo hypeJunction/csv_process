@@ -2,7 +2,7 @@
 echo '<br><br>';
 
 // get a list of our callbacks
-$options = elgg_trigger_plugin_hook('csv_process', 'callbacks', [], []);
+$options = elgg_trigger_event_results('csv_process', 'callbacks', [], []);
 
 if (!$options) {
 	// we have no callbacks, nothing to show here

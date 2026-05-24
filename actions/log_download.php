@@ -5,8 +5,7 @@ $time = get_input('time');
 $filename = elgg_get_config('dataroot') . "csv_process_log/{$time}log.txt";
 
 if (!file_exists($filename)) {
-	register_error(elgg_echo('csv_process:nofile'));
-	forward(REFERER);
+	return elgg_error_response(elgg_echo('csv_process:nofile'));
 }
 
 header('Content-Type: application/octet-stream');

@@ -14,7 +14,7 @@ return [
 			'access' => 'admin',
 		],
 	],
-	'hooks' => [
+	'events' => [
 		'csv_process' => [
 			'callbacks' => [
 				'CsvProcess\\DemoHandler::register' => [],

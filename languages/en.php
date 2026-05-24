@@ -1,6 +1,6 @@
 <?php
 
-$english = array(	
+return [
 	'csv_process:process' => "Process CSV",
 	'admin:administer_utilities:csv_process' => "CSV Processing",
 	'csv_process:nocallbacks' => "There are no csv processing utilities registered",
@@ -27,6 +27,4 @@ $english = array(
 	'csv_process:log:download' => "Download Log",
 	'csv_process:log:download:blurb' => "This is a preview of the log for this process.  The last line of the log is retrieved every 2 seconds, so not all lines may show here.  This is intended to show the progress of the script.  The full log can be downloaded here: %s",
 	'csv_process:nolog' => "Waiting for log initiation...",
-);
-					
-add_translation("en", $english);
+];

@@ -2,16 +2,17 @@
 
 namespace CsvProcess;
 
-use Elgg\Hook;
+use Elgg\Event;
 
 /**
- * Demo CSV row handler. Registered on the `csv_process,callbacks` plugin
- * hook so administrators can pick it from the dropdown in the admin UI.
+ * Demo CSV row handler. Registered on the `csv_process,callbacks` event
+ * so administrators can pick it from the dropdown in the admin UI.
  *
- * The hook signature is preserved at 4 args because consumer plugins such as
- * `bodyology_csv` register callable maps using the legacy 4-arg signature;
- * unifying to `\Elgg\Hook` will happen at the 4.x -> 5.x boundary
- * (`elgg-migrate-xk2ch`).
+ * The per-row callback signature (what `$csv_callback($params)` receives
+ * in `CsvProcessor::processCsv`) is intentionally a positional `array`
+ * payload, NOT an `\Elgg\Event`. csv_process invokes the registered
+ * callable directly, so consumer plugins (e.g. `bodyology_csv`) keep
+ * their per-row functions taking `array $params`.
  */
 class DemoHandler {
 
@@ -23,12 +24,12 @@ class DemoHandler {
 	 * `$csv_callback($params)` in CsvProcessor::processCsv() resolves to
 	 * the static method.
 	 *
-	 * @param Hook $hook hook
+	 * @param Event $event 'csv_process','callbacks' event
 	 *
 	 * @return array
 	 */
-	public static function register(Hook $hook) {
-		$return = (array) $hook->getValue();
+	public static function register(Event $event) {
+		$return = (array) $event->getValue();
 
 		$return[self::class . '::handle'] = \elgg_echo('csv_process:handler:label');
 
@@ -40,6 +41,7 @@ class DemoHandler {
 	 * on the synthetic final invocation (`$params['last'] === true`).
 	 *
 	 * @param array $params per-row callback parameters
+	 *                      (keys: 'data', 'line', 'last', 'time')
 	 *
 	 * @return string|false
 	 */
