@@ -1,104 +1,92 @@
 CSV Process for Elgg
 ====================
 
-![Elgg 2.0+](https://img.shields.io/badge/Elgg-<%3D2.0.x-orange.svg?style=flat-square)
+![Elgg 4.x](https://img.shields.io/badge/Elgg-4.x-orange.svg?style=flat-square)
 
-This is intended for developers who routinely use csvs for functions such as data
-imports.
+Admin tool that uploads a CSV file and dispatches each row to a custom
+processing callback contributed by another plugin. Useful for one-off
+data imports, bulk profile updates, and similar tasks.
 
-This plugin aims to take much of the legwork out of csv processing.
-It provides an admin page for uploading/selecting the csv, selecting the function
-to process the csv, setting csv specific settings, and watching/downloading a log
-file showing how the script performed.
+The form for handling CSV processing is found at
+**Admin → Utilities → CSV Processing**.
 
-The form for handling csv functions is found at Admin -> Utilities -> CSV Processing
+## Installation
 
-##Installation
-
-Install/unzip/clone to the mod directory of your elgg installation
-
-The directory should be named csv_process
-
-Enable the plugin through the admin plugins page
-
-##Dependencies
-
-This plugin requires the vroom plugin
-[https://github.com/jumbojett/vroom](https://github.com/jumbojett/vroom)
-
-
-##Integration
-
-There are only 3 steps required to integrate to this plugin
-
-1. Register a plugin hook handler to declare a callback function
-
-2. Declare your callback function
-
-3. Define your callback function
-
-
-Register your plugin hook handler:
-```
-elgg_register_plugin_hook_handler('csv_process', 'callbacks', 'myplugin_csv_callbacks');
+```bash
+composer require hypejunction/csv_process:^4.0
 ```
 
-Declare your callback function:
+Then enable through Admin → Plugins.
+
+## Compatibility
+
+| Plugin version | Elgg version |
+|---|---|
+| current | 4.x |
+| 3.x     | 3.x |
+| 2.x     | 2.x |
+
+## Integration
+
+Other plugins register CSV processing callbacks by listening on the
+`csv_process,callbacks` plugin hook and returning a `callable-string =>
+label-string` map. The hook signature is the legacy 4-arg form for
+compatibility with older registrants; this will be unified at the
+4.x → 5.x boundary.
+
+Register your hook handler (in your plugin's `elgg-plugin.php`):
+
+```php
+return [
+    'hooks' => [
+        'csv_process' => [
+            'callbacks' => [
+                'My\\Plugin\\Csv::register' => [],
+            ],
+        ],
+    ],
+];
 ```
-function myplugin_csv_callbacks($hook, $type, $return, $params) {	
-    $return['myplugin_csv_process'] = elgg_echo('myplugin:handler:label');
-    return $return;
-}
-```
-The return value is an associative array with your callback function name as the key
-and a label describing the function as a value.  These will be used to populate
-the dropdown input for selecting how to process the csv.
 
+Implement the hook + per-row handler:
 
-Define your callback function
-```
-/**
- *
- *  @params array()
- */
-function myplugin_csv_process($params) {
+```php
+namespace My\Plugin;
 
-    static $skipped;
+use Elgg\Hook;
 
-    // you can always know what line you are on with $params
-    if ($params['line'] == 1) {
-        // first line is our column headers, nothing to do here
-        return;
+class Csv {
+    public static function register(Hook $hook) {
+        $return = (array) $hook->getValue();
+        $return[self::class . '::handle'] = elgg_echo('myplugin:handler:label');
+        return $return;
     }
 
-    // the $params['last'] flag indicates that there are is no more data
-    // this can be used to log any final tallies or information
-    // when the 'last' flag is true data will be an empty array
-    if ($params['last']) {
-        return "{$params['line']} lines processed, {$skipped} skipped users";
+    public static function handle(array $params) {
+        // First line is column headers — skip.
+        if ($params['line'] === 1) {
+            return;
+        }
+
+        // Synthetic final invocation — emit a summary line.
+        if ($params['last']) {
+            return "{$params['line']} lines processed";
+        }
+
+        // Row data is in $params['data'].
+        // Do work. Return a string to log; return false / null to skip logging.
+        return "First cell: {$params['data'][0]}";
     }
-
-    // our data is an array in $params['data']
-    // do something with it
-    $user = get_user($params['data'][0]);
-    
-    if (!$user) {
-        $skipped++;
-        return; // nothing to do here
-    }
-
-    // we have a user from our data, import something
-    $user->food = $params['data'][1];
-
-
-    // a returned string from the function will automatically be logged
-    // but you can always log extra stuff yourself
-    csv_process\log("my log message", $params);
-
-    return 'this will also be logged!';
 }
 ```
 
+The plugin exposes a single demo handler (`CsvProcess\DemoHandler::handle`)
+that logs the first cell of each row — useful as a smoke test.
 
-That's all.  Sort out what to do with your data and let this plugin handle the
-interface, logging, row iterations, etc.
+## Architecture
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the current 4.x layout.
+
+## License
+
+GPL-2.0-or-later
