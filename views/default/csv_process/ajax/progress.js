@@ -33,6 +33,7 @@ define(function (require) {
 			if (this.timeout) {
 				window.clearTimeout(this.timeout);
 			}
+
 			this.timeout = window.setTimeout(this.getLine.bind(this), 2000);
 		}
 	};

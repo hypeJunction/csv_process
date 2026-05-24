@@ -2,7 +2,7 @@
 
 $time = get_input('time');
 
-$filename = elgg_get_config("dataroot") . "csv_process_log/{$time}log.txt";
+$filename = elgg_get_config('dataroot') . "csv_process_log/{$time}log.txt";
 
 if (!file_exists($filename)) {
 	register_error(elgg_echo('csv_process:nofile'));

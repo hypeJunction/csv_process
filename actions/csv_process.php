@@ -5,7 +5,7 @@ namespace csv_process;
 set_time_limit(0);
 
 $callback = get_input('callback', false);
-$options = elgg_trigger_plugin_hook('csv_process', 'callbacks', array(), array());
+$options = elgg_trigger_plugin_hook('csv_process', 'callbacks', [], []);
 $location = get_input('location');
 $delimiter = get_input('delimiter', ',');
 $enclosure = get_input('enclosure', '"');
@@ -45,16 +45,16 @@ elgg_set_config('csv_process_enclosure', $enclosure);
 elgg_set_config('csv_process_escape', $escape);
 
 if (!file_exists(elgg_get_config('dataroot') . 'csv_process_log')) {
-	mkdir(elgg_get_config('dataroot') . 'csv_process_log'); 
+	mkdir(elgg_get_config('dataroot') . 'csv_process_log');
 }
 
 if (elgg_is_xhr()) {
-	echo json_encode(array(
-		'progress' => elgg_view('csv_process/ajax/progress', array(
+	echo json_encode([
+		'progress' => elgg_view('csv_process/ajax/progress', [
 			'time' => $time,
 			'full_view' => true,
-		)),
-	));
+		]),
+	]);
 }
 
 forward('admin/administer_utilities/csv_process?time=' . $time);

@@ -5,7 +5,7 @@ $time = $vars['time'];
 
 $line = '';
 
-$filename = elgg_get_config("dataroot") . "csv_process_log/{$time}log.txt";
+$filename = elgg_get_config('dataroot') . "csv_process_log/{$time}log.txt";
 
 $f = false;
 if (file_exists($filename)) {
@@ -47,17 +47,17 @@ if (elgg_is_xhr() && !elgg_extract('full_view', $vars, false)) {
 	return;
 }
 
-$download_link = elgg_view('output/url', array(
+$download_link = elgg_view('output/url', [
 	'text' => elgg_echo('csv_process:log:download'),
 	'href' => 'action/csv_process/log_download?time=' . $vars['time'],
 	'is_action' => true
-		));
+]);
 
 echo '<div id="csv-process-results"></div>';
-echo elgg_view('output/longtext', array(
-	'value' => elgg_echo('csv_process:log:download:blurb', array($download_link)),
+echo elgg_view('output/longtext', [
+	'value' => elgg_echo('csv_process:log:download:blurb', [$download_link]),
 	'class' => 'elgg-subtext'
-));
+]);
 ?>
 <script>
 	require(['csv_process/ajax/progress'], function (Progress) {
