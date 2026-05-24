@@ -77,8 +77,5 @@ echo elgg_view('output/longtext', [
 ]);
 
 echo elgg_view('input/submit', ['value' => elgg_echo('submit')]);
-?>
 
-<script>
-	require(['forms/csv_process']);
-</script>
+elgg_import_esm('forms/csv_process');

@@ -59,10 +59,10 @@ echo elgg_view('output/longtext', [
 	'class' => 'elgg-subtext'
 ]);
 ?>
-<script>
-	require(['csv_process/ajax/progress'], function (Progress) {
-		var p = new Progress(<?= json_encode($time) ?>);
-		p.addLine(<?= json_encode($line) ?>);
-		p.init();
-	});
+<script type="module">
+	import Progress from 'csv_process/ajax/progress';
+
+	var p = new Progress(<?= json_encode($time) ?>);
+	p.addLine(<?= json_encode($line) ?>);
+	p.init();
 </script>
