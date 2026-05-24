@@ -1,5 +1,55 @@
 # Changelog
 
+## 6.0.0 — 2026-05-24
+
+Migrated from Elgg 5.x to 6.x (`elgg-migrate-jmw26`).
+
+### Removed
+
+- AMD module loader and `define(function (require) { ... })` wrapper —
+  RequireJS/AMD removed in Elgg 6.0. Both plugin JS views (`forms/csv_process`
+  and `csv_process/ajax/progress`) were converted to native ES modules.
+- Inline `<script>require([...])</script>` blocks — replaced with
+  `elgg_import_esm()` (form view) and `<script type="module">import ...</script>`
+  (progress view, which needs per-run data inlined).
+
+### Changed
+
+- `composer.json`: `elgg/elgg ~5.1.0` → `~6.1.0`, `php >=8.1` → `>=8.2`.
+  `ext-intl *` carried forward.
+- `docker/`: replaced with the elgg6 template (PHP 8.2 base image, Elgg 6.x
+  installer, PHPUnit ^10.5, MySQL 8.0 / MariaDB 10.6+).
+- `views/default/forms/csv_process.js` → `views/default/forms/csv_process.mjs`.
+  AMD `define(function (require) { var $ = require('jquery'); ... })` →
+  top-level `import 'jquery'; import elgg from 'elgg'; import spinner from
+  'elgg/spinner'; import i18n from 'elgg/i18n'; import 'jquery.form';`. Module
+  body is side-effecting (binds a form submit handler at import time), no
+  exports.
+- `views/default/csv_process/ajax/progress.js` → `views/default/csv_process/ajax/progress.mjs`.
+  AMD-wrapped `Progress` constructor → ESM with `import 'jquery'; import Ajax
+  from 'elgg/Ajax'; ...; export default Progress;`.
+- `views/default/forms/csv_process.php`: dropped
+  `<script>require(['forms/csv_process']);</script>` in favour of
+  `elgg_import_esm('forms/csv_process')`.
+- `views/default/csv_process/ajax/progress.php`: dropped the AMD `require([...])`
+  inline call and replaced with `<script type="module">import Progress from
+  'csv_process/ajax/progress'; new Progress(<?= json_encode($time) ?>); ...</script>`.
+  Mirrors Elgg core's `ckeditor/init.php` pattern for passing run-time data
+  into a module.
+
+### Notes
+
+- No other 6.x removals triggered: the plugin doesn't touch annotations
+  (`n_table`, enable/disable), entity icons (`icontime`, `x1/y1`),
+  `elgg_strrchr` / `strripos`, `EntityIcon` interface, `elgg_set_view_location`,
+  `elgg_get_entity_statistics()` / `elgg_get_simplecache_url()` 2-arg form, raw
+  SQL with new MySQL 8 reserved words, `'hooks'` key, or grid CSS classes
+  (`elgg-grid` / `elgg-col` / `elgg-row`).
+- Verified on the elgg6 docker stack (project `csv-process-6x`): activation OK,
+  homepage (13.8 KB) and login (13.9 KB) render, no PHP Fatal/Error in Apache
+  log, PHP syntax clean, PHP_CodeSniffer (Elgg standard) clean. Post-migration
+  verifier and security sweep both clean.
+
 ## 5.0.0 — 2026-05-24
 
 Migrated from Elgg 4.x to 5.x (`elgg-migrate-xk2ch`).

@@ -1,7 +1,7 @@
 CSV Process for Elgg
 ====================
 
-![Elgg 5.x](https://img.shields.io/badge/Elgg-5.x-orange.svg?style=flat-square)
+![Elgg 6.x](https://img.shields.io/badge/Elgg-6.x-orange.svg?style=flat-square)
 
 Admin tool that uploads a CSV file and dispatches each row to a custom
 processing callback contributed by another plugin. Useful for one-off
@@ -13,7 +13,7 @@ The form for handling CSV processing is found at
 ## Installation
 
 ```bash
-composer require hypejunction/csv_process:~5.1.0
+composer require hypejunction/csv_process:~6.1.0
 ```
 
 Then enable through Admin → Plugins.
@@ -22,7 +22,8 @@ Then enable through Admin → Plugins.
 
 | Plugin version | Elgg version |
 |---|---|
-| current | 5.x |
+| current | 6.x |
+| 5.x     | 5.x |
 | 4.x     | 4.x |
 | 3.x     | 3.x |
 | 2.x     | 2.x |
@@ -87,7 +88,7 @@ that logs the first cell of each row — useful as a smoke test.
 
 ## Architecture
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the current 5.x layout.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the current 6.x layout.
 
 ## License
 
