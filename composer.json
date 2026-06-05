@@ -22,12 +22,6 @@
     ],
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://asset-packagist.org"
-        }
-    ],
     "require": {
         "composer/installers": "^2.0",
         "php": ">=8.3",
