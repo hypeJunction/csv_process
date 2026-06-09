@@ -1,5 +1,5 @@
 <?php
-admin_gatekeeper();
+elgg_admin_gatekeeper();
 
 $time = $vars['time'];
 
